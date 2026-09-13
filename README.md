@@ -2,13 +2,63 @@
 
 
 
-This repository contains an automated data extraction, cleaning, verification, and enrichment pipeline for AI/ML models built for the AIOrbit dataset.
+An automated end-to-end pipeline for discovering, cleaning, deduplicating, and enriching metadata for 427 AI/ML models into a unified dataset.
 
 
 
-\## Project Structure
+\---
+
+
+
+\## 🏗️ System Architecture \& Data Pipeline
+
+
 
 ```text
+
+&#x20; \[ models.dev API ]        \[ Hugging Face Hub ]
+
+&#x20;         │                          │
+
+&#x20;         └───────────┐  ┌───────────┘
+
+&#x20;                     ▼  ▼
+
+&#x20;           ┌──────────────────────┐
+
+&#x20;           │   src/extract.py     │  ──> Raw Data Ingestion
+
+&#x20;           └──────────┬───────────┘
+
+&#x20;                      │ (data/raw\_models.csv)
+
+&#x20;                      ▼
+
+&#x20;           ┌──────────────────────┐
+
+&#x20;           │    src/clean.py      │  ──> Deduplication \& Quality Filtering (>70 score)
+
+&#x20;           └──────────┬───────────┘
+
+&#x20;                      │ (data/cleaned\_models.csv)
+
+&#x20;                      ▼
+
+&#x20;           ┌──────────────────────┐
+
+&#x20;           │src/generate\_descs.py │  ──> LLM Description Standardization (Gemini API)
+
+&#x20;           └──────────┬───────────┘
+
+&#x20;                      │ (data/final\_models.csv)
+
+&#x20;                      ▼
+
+&#x20;        ┌────────────────────────────┐
+
+&#x20;        │ Public Google Sheets Sync  │  ──> Final AIOrbit Dataset (427 Models)
+
+&#x20;        └────────────────────────────┘
 
 models-project/
 
@@ -16,25 +66,25 @@ models-project/
 
 ├── data/
 
-│   ├── raw\_models.csv
+│   ├── raw\_models.csv         # Raw extracted API records
 
-│   ├── cleaned\_models.csv
+│   ├── cleaned\_models.csv     # Deduplicated \& filtered records
 
-│   └── final\_models.csv
+│   └── final\_models.csv       # Standardized \& LLM-enriched dataset (427 rows)
 
 │
 
 ├── src/
 
-│   ├── extract.py
+│   ├── extract.py             # API fetching module
 
-│   ├── clean.py
+│   ├── clean.py               # Data hygiene \& quality evaluation logic
 
-│   └── generate\_descriptions.py
+│   └── generate\_descriptions.py # Gemini API enrichment script
 
 │
 
-├── README.md
+├── README.md                  # Project documentation \& architecture
 
-└── requirements.txt
+└── requirements.txt           # Environment dependencies
 
