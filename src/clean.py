@@ -1,44 +1,37 @@
 import os
 import pandas as pd
 
-def clean_and_normalize():
-    raw_path = "data/raw_models.csv"
-    output_path = "data/cleaned_models.csv"
-    
+def clean_and_deduplicate():
+    raw_path = os.path.join("data", "raw_models.csv")
+    cleaned_path = os.path.join("data", "cleaned_models.csv")
+
     if not os.path.exists(raw_path):
-        print(f"Error: {raw_path} not found!")
+        print(f"Error: {raw_path} does not exist. Run extract.py first.")
         return
 
-    print("Loading raw models data...")
     df = pd.read_csv(raw_path)
+    print(f"Initial raw rows loaded: {len(df)}")
 
-    # 1. Fill missing text values with clean placeholders
-    df["model_family"] = df["model_family"].fillna(df["model_name"].str.split("-").str[0])
-    df["company_creator"] = df["company_creator"].fillna("Unknown / Open Source")
-    df["official_website"] = df["official_website"].fillna("")
-    df["model_category"] = df["model_category"].fillna("General LLM")
-    df["release_date"] = df["release_date"].fillna("N/A")
-    df["input_modalities"] = df["input_modalities"].fillna("text")
-    df["output_modalities"] = df["output_modalities"].fillna("text")
-    df["context_window"] = df["context_window"].fillna("N/A")
-    df["open_weights_status"] = df["open_weights_status"].fillna("Open-weight")
-    df["license"] = df["license"].fillna("N/A")
-    df["huggingface_url"] = df["huggingface_url"].fillna("")
-    df["github_url"] = df["github_url"].fillna("")
-    df["logo_url"] = df["logo_url"].fillna("")
-    df["description"] = df["description"].fillna("High-performance AI model designed for various machine learning workflows.")
-    df["quality_score"] = df["quality_score"].fillna(80)
+    # 1. Clean string fields
+    df['model_id'] = df['model_id'].astype(str).str.strip()
+    df = df[df['model_id'] != ""]
 
-    # 2. String cleaning and trimming
-    for col in df.select_dtypes(include=['object']).columns:
-        df[col] = df[col].astype(str).str.strip()
+    # 2. Strict Deduplication by unique model_id
+    df_clean = df.drop_duplicates(subset=['model_id'], keep='first')
+    print(f"Rows after strict deduplication: {len(df_clean)}")
 
-    # 3. Quality Filtering (Keep scores >= 70 as required by guideline)
-    df = df[df["quality_score"] >= 70]
+    # 3. Fill missing values
+    df_clean['pipeline_tag'] = df_clean['pipeline_tag'].fillna("uncategorized")
+    df_clean['library_name'] = df_clean['library_name'].fillna("unknown")
+    df_clean['downloads'] = df_clean['downloads'].fillna(0).astype(int)
+    df_clean['likes'] = df_clean['likes'].fillna(0).astype(int)
 
-    # Save cleaned data
-    df.to_csv(output_path, index=False)
-    print(f"Successfully cleaned and saved {len(df)} records to {output_path}")
+    # 4. Enforce exactly 2,000 unique records target
+    if len(df_clean) >= 2000:
+        df_clean = df_clean.iloc[:2000]
+
+    df_clean.to_csv(cleaned_path, index=False)
+    print(f"Cleaned dataset saved successfully to {cleaned_path} with exactly {len(df_clean)} unique records.")
 
 if __name__ == "__main__":
-    clean_and_normalize()
+    clean_and_deduplicate()
